@@ -1,0 +1,127 @@
+\documentclass[10pt, nogin]{article}
+\usepackage[fleqn]{amsmath}
+\usepackage{fancyhdr, graphicx, listings,amssymb, comment,cancel}
+\usepackage[margin=0.5in]{geometry}
+\usepackage{Sweave}
+\usepackage{placeins}
+\usepackage{pdflscape}
+\usepackage{subcaption}
+
+\usepackage[table]{xcolor}
+
+\raggedbottom
+%\SweaveOpts{pdfcrop=TRUE}
+%\graphicspath{{Figures/}}
+
+\usepackage{pdfpages}
+\usepackage{setspace}
+
+\geometry{ left = 0.5in, right = 0.5in, top = 0.75in, bottom = 0.5in, foot=0.5in} %foot option ensures page number prints on page
+\pagestyle{fancy}
+%\setlength{\headsep}{.5in}
+
+\lhead{WASH Benefits Kenya Implementation Analysis}
+\chead{}
+\rhead{}
+
+\lstset{breaklines=true}
+
+% change font to helvetica
+\usepackage[scaled]{helvet}
+\renewcommand\familydefault{\sfdefault}
+\usepackage[T1]{fontenc}
+\usepackage[helvet]{sfmath}
+\everymath={\sf}
+
+% the following three lines ensure table is at top of page
+\makeatletter
+\setlength{\@fptop}{0pt}
+\makeatother
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\cfoot{\vspace*{1.5\baselineskip}\thepage} % this line ensures page number doesn't overlap
+% with the footer
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+<<preamble,echo=false>>=
+library(xtable)
+
+#function to strip row/colnames from table and output contents only
+##for formatting in latex
+cleantable <- function(x,digits) {
+ print( xtable(x,digits=digits),
+        sanitize.text.function=function(y){y},
+        floating=FALSE,
+        include.rownames=FALSE,
+        include.colnames=FALSE,
+        only.contents=TRUE,
+        hline.after=NULL
+ )
+}
+
+# determine whether computer is running unix or windows
+if(.Platform$OS.type == "unix") {
+  dir.start="~/"
+} else {
+  dir.start="C:/Users/andre/"
+}
+@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Table 1
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+<<chunk1,echo=false>>=
+#load("~/Dropbox/WBK-primary-analysis/Results/jade/table1_f.RData")
+# load("C:/Users/andre/Dropbox/WBK-primary-analysis/Results/Jade/table1_f.RData")
+#load(paste(dir.start,"Dropbox/WBK-primary-analysis/Results/Jade/table1_f.RData",sep=""))
+load(paste(dir.start,"Dropbox/WBK-primary-analysis/Results/Andrew/kenya-implementation.Rdata",sep=""))
+@
+
+\begin{landscape}
+
+\FloatBarrier
+
+\begin{table}[!ht]
+\caption{Enrollment characteristics by intervention group}
+\begin{small}
+\begin{tabular}{l c c c c c c c c c}\hline
+
+\hline
+& &  &  &  &  & Water + &  &   &  \\
+& &  &  &  &  & Sanitation + &  &  &   \\
+& Active & Passive &  &  &  & Handwashing + &  & Nutrition +  &  \\
+& Control & Control & Water & Sanitation & Handwashing & (WSH) & Nutrition & WSH  &  Total\\
+<<table,echo=false,results=tex>>=
+cleantable(matrix(c("No. of households:",n.hh.f),nrow=1,ncol=10),digits=0)
+@
+\hline
+&$\%$ / mean & $\%$ / mean & $\%$ / mean & $\%$ / mean & $\%$ / mean & $\%$ / mean & $\%$ / mean & $\%$ / mean & $\%$ / mean \\\hline
+
+<<table,echo=false,results=tex>>=
+cleantable(impl,digits=0)
+#cleantable(table1_f,digits=0)
+
+@
+
+\hline
+\end{tabular}
+\begin{scriptsize}
+\end{scriptsize}
+\end{small}
+\end{table}
+
+\FloatBarrier
+
+\end{landscape}
+
+
+
+
+\end{document}
+
+

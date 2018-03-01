@@ -1,0 +1,145 @@
+---
+title: "Diarrhea Recall Error Check- Kenya"
+author: "Andrew Mertens"
+date: "December 13, 2016"
+output: pdf_document
+---
+
+
+```{r, include=FALSE}
+#---------------------------------------
+# preamble
+#---------------------------------------
+rm(list=ls())
+library(metafor)
+library(washb)
+library(dplyr)
+
+
+#---------------------------------------
+# Load the analysis dataset
+#---------------------------------------
+d <- read.csv("C:/Users/andre/Dropbox/WBK-primary-analysis/Data/Final/Andrew/washb-kenya-diar.csv")
+
+#---------------------------------------
+# Subset the Data to Follow-up data only
+#---------------------------------------
+table(d$studyyear)
+
+#---------------------------------------
+# Exclude:
+# * siblings who were born after enrollment
+# * siblings who were >36 mos at enrollment
+# * children with missing outcome data
+#---------------------------------------
+
+
+#subset the diarrhea to children <36 mos at enrollment
+#or target children
+ad <-
+  d %>%
+  subset(., studyyear>0 & dcohort==1) %>%
+  subset(., !is.na(.$diar7d))
+
+dim(ad)
+table(ad$diar7d, ad$tr,ad$studyyear)
+table(ad$tr,ad$studyyear)
+
+# re-order the tr factor so Control 
+ad$tr <- factor(ad$tr,levels=c("Passive Control","Water","Sanitation","Handwashing","WSH","Nutrition","Nutrition + WSH","Control"))
+```
+
+###Examine overlap between primary outcomes definition of diarrhea, and a definition that constrains 3+ stool and watery stool to occur on the same day. 
+(Only using 2 day recall because no information on the day the abnormal stool occurred between days 3-7.)  
+
+Table of primary outcome diarrhea definition compared to stricter, alternative definition:  
+
+```{r, echo=F, comment=""}
+#table(ad$altdiar7d,ad$diar7d)
+#table(factor(ad$altdiar2d,levels=c("No diar","Diar")),factor(ad$diar2d, levels=c("No diar","Diar")), dnn=c("Alt def","Primary outcome def"))
+table(ad$altdiar2d,ad$diar2d, dnn=c("Alt def","Primary outcome def"))
+
+```
+
+There are 152 less 2-day recall diarrhea cases in the analysis population if the diarrhea definition is constrained to have 3+ stool and watery stool occurr on the same day (5.6% of cases used in the primary outcomes analysis).
+
+
+
+###Create a variable for terminated diarrhea cases between 7d and 2d recall periods
+
+```{r, tidy=T, comment=""}
+ad$diart <- ifelse(ad$diar2d==0 & ad$diar7d==1,1,0)
+table(ad$diar2d,ad$diart, dnn=c("2d diarrhea","Terminated diarrhea"))  
+```
+
+There were 532 terminated cases where diarrhea was reported over the last 7 days, but not within the last 2 days.
+
+ 
+```{r, include=F, comment=""}
+#---------------------------------------
+# Current:Terminated ratio difference function
+#---------------------------------------
+ctratio <- function(dcurr,dterm,tr) {
+  # dcurr: indicator of a current diarrhea case
+  # dterm: indicator of a terminated diarrhea case
+  # tr   : assigned treatment group
+  #curr <- tapply(dcurr,tr,sum)
+  #term <- tapply(dterm,tr,sum)
+  curr <- table(dcurr, tr)[2,]  
+  term <-table(dterm,tr)[2,] 
+  ctratio <- curr/term
+  return(ctratio)
+}
+
+```
+
+###Examine the ratio between current and terminated diarrhea across treatment arms:
+```{r, echo=F, comment=""}
+ctratio(ad$diar2d,ad$diart,ad$tr)
+```
+
+Roughly 5/1 ratio of ongoing (or recent) diarrhea cases to terminated cases within the last week. 
+
+
+###Cross-tabs of final observations in the analysis, by survey round and study arm
+```{r, echo=F, comment=""}
+table(ad$tr,ad$diar2d, ad$studyyear, dnn=c("","2-day diarrhea recall","Study Year"))
+table(ad$tr,ad$diar7d, ad$studyyear, dnn=c("","7-day diarrhea recall","Study Year"))
+table(ad$tr,ad$diart, ad$studyyear, dnn=c("","Terminated diarrhea recall","Study Year"))
+
+```
+
+
+
+###Results of bootstrap the Current diarrhea/Terminated diarrhea ratio by re-sampling randomization blocks with replacement:
+
+```{r, echo=F, cache=T}
+
+
+set.seed(1349175)
+nreps <- 1000
+bsamp <- matrix(sample(unique(ad$block),size=length(unique(ad$block))*nreps,replace=TRUE),ncol=nreps)
+ctratios <- matrix(rep(NA,nreps*8),ncol=8)
+for(i in 1:nreps) {
+  bd <- merge(ad,data.frame(block=bsamp[,i]),by="block",all.x=FALSE)
+  ctratios[i,] <- ctratio(bd$diar2d,bd$diart,bd$tr)
+}
+
+# compute differences between each arm and control, then the mean and percentile 95% CIs
+muctratio <- apply(ctratios,2,mean)[c(8,1:7)]
+ctdiff <- ctratios[,1:7]-ctratios[,8]
+ctmeans <- apply(ctdiff,2,mean)
+ct95ci  <- apply(ctdiff,2,function(x) quantile(x,probs=c(0.025,0.975)))
+
+res <- cbind(muctratio,c(NA,ctmeans),t(cbind(c(NA,NA),ct95ci)))
+rownames(res) <- levels(ad$tr)[c(8,1:7)]
+colnames(res) <- c("CTratio","CTratio diff","Lower 95% CI","Upper 95% CI")
+```
+
+
+```{r,echo=F, comment=""}
+res
+```
+
+
+No evidence for significant difference in diarrhea recall between study arms.

@@ -1,0 +1,1330 @@
+----------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:/Users/andre/Documents/washb_Kenya_primary_outcomes_Andrew/Kenya cl
+> eaning .do files/6-kenya-dm-uptake.log
+  log type:  text
+ opened on:  15 Dec 2016, 12:15:22
+
+. 
+. *--------------------------------------------
+. * 6-kenya-dm-uptake.do
+. *
+. * andrew mertens (amertens@berkeley.edu)
+. *
+. * process the Kenya trial uptake
+. * data for analysis
+. *
+. * note: unlike other dm scripts, this script
+. * relies on an earlier dm script (3-kenya-dm-diar.do)
+. * to grab child ages at survey measurements
+. * rather than re-calculate them here
+. *
+. *--------------------------------------------
+. 
+. 
+. 
+. 
+. *--------------------------------------------
+. * input files:
+. *
+. *  1. WASHB_Baseline_main_survey.dta
+. *  1. WASHB_Midline_main_survey_cleaned.dta
+. * 04. WASHB_Endline_main_survey_cleaned.dta
+. * 11. WASHB_Endline_LNS_cleaned.dta
+. *
+. * 02. WASHB_Endline_Arm_Identification.dta (real treatment assignments, after un
+> blinding)
+. *
+. *  washb-kenya-diar.dta
+. *
+. * output files:
+. *  final/washb-kenya-uptake.dta / .csv
+. *--------------------------------------------
+. 
+. *--------------------------------------------
+. * Set working directory
+. *--------------------------------------------
+. cd "~/Dropbox/WBK-primary-analysis/Data/"
+C:\Users\andre\Dropbox\WBK-primary-analysis\Data
+
+. 
+. *--------------------------------------------
+. * format the treatment assignment information
+. *--------------------------------------------
+. use "Untouched/tr/washb-kenya-tr.dta", clear
+(WASH Benefits Kenya cluster level treatment assignments)
+
+. destring clusterid, replace
+clusterid: all characters numeric; replaced as long
+
+. tempfile trdata
+
+. save `trdata'
+file C:\Users\andre\AppData\Local\Temp\ST_08000001.tmp saved
+
+. 
+. 
+. 
+. *--------------------------------------------
+. * load index child ages at each survey
+. * to subset nutrition uptake measures to 
+. * children 6-24 months old
+. *--------------------------------------------
+. *use "Final/Andrew/washb-kenya-diar.dta", clear
+. use "Untouched/msP_child_IDchar_20161006.dta", clear
+
+. * restrict to index children (study children+twins)
+. *keep if childid==1|childid==2
+.  
+. * restrict to target children 
+. keep if childtype==1
+(5,430 observations deleted)
+
+. duplicates list hhid
+
+Duplicates in terms of hhid
+
+(0 observations are duplicates)
+
+. keep hhid childid DOB 
+
+. sort hhid 
+
+. tempfile DOB
+
+. save `DOB' 
+file C:\Users\andre\AppData\Local\Temp\ST_08000002.tmp saved
+
+. 
+. 
+. 
+. 
+. **********************************************************
+. *Figure 2: Intervention compliance
+. **********************************************************
+. 
+. 
+. 
+. 
+. 
+. 
+. *--------------------------------------------
+. * Load in household survey
+. *--------------------------------------------
+. 
+. use "~/Dropbox/WBK-primary-analysis/Data/Untouched/Baseline/msP_bl_append_ID_cle
+> an_20161010.dta", clear
+
+. sort  hhid
+
+. 
+. *merge in treatment data
+. sort clusterid
+
+. merge m:1 clusterid using `trdata'
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             0
+    matched                             8,246  (_merge==3)
+    -----------------------------------------
+
+. drop _merge
+
+. 
+. 
+. 
+. *--------------------------------------------
+. * Uptake indicators
+. *--------------------------------------------
+. 
+. * visited by promoter in past month
+. gen byte promoter_vis=.
+(8,246 missing values generated)
+
+. 
+.         
+. * store water with detectable free chlorine 
+. gen byte freechl = c1015a>0 & c1015a!=99.9
+
+.         replace freechl = 0 if c1015a==0 | c1005==2 | (c1005==1 & c100601!=1 & c
+> 100601!=2 & c100601!=11 & c100601!=12 & c100601!=13 &  c100602!=1 & c100602!=2 &
+>  c100602!=11 & c100602!=12 & c100602!=13)
+(6,177 real changes made)
+
+.         replace freechl = . if c1003_1==2 | c1014!=1| c1015a==99.9 | c1023==11 |
+>  c1023==12 
+(1,702 real changes made, 1,702 to missing)
+
+.         label var freechl "Free chlorine detected in stored water (>0 mg/L)"
+
+.         tab freechl tr
+
+      Free |
+  chlorine |
+  detected |
+ in stored |
+ water (>0 |            Randomized treatment assignment
+     mg/L) |   Control      Water  Sanitatio  Handwashi        WSH |     Total
+-----------+-------------------------------------------------------+----------
+         0 |     1,485        700        695        713        682 |     6,337 
+         1 |        44         20         20         30         29 |       207 
+-----------+-------------------------------------------------------+----------
+     Total |     1,529        720        715        743        711 |     6,544 
+
+
+      Free |
+  chlorine |
+  detected |
+ in stored |
+ water (>0 | Randomized treatment assignment
+     mg/L) | Nutrition  Nutrition  Passive C |     Total
+-----------+---------------------------------+----------
+         0 |       647        703        712 |     6,337 
+         1 |        14         26         24 |       207 
+-----------+---------------------------------+----------
+     Total |       661        729        736 |     6,544 
+
+
+. 
+.         
+.         
+. * access to improved latrine
+. *  access to improved latrine
+. gen byte impr_lat = (c806_7==1 | c806_5==1)
+
+.         replace impr_lat=. if (c806_7==99 & c806_5==.) | (c806_7==. & c806_5==.)
+(684 real changes made, 684 to missing)
+
+.         replace impr_lat=. if (to1b==2 | to1b==3)
+(0 real changes made)
+
+.         replace impr_lat=0 if c805==2
+(171 real changes made)
+
+.         
+.         label var impr_lat "Access to improved latrine"
+
+. tab impr_lat
+
+  Access to |
+   improved |
+    latrine |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |      6,411       82.98       82.98
+          1 |      1,315       17.02      100.00
+------------+-----------------------------------
+      Total |      7,726      100.00
+
+. 
+. * child feces safetly disposed
+. gen byte ch_feces_safe_disp= (c903_intoilet==1 | c903_diaper==1 | ((c903_potty_i
+> ncourt==1 | c903_potty_inhouse==1) & (c904==2 | c904==7)))
+
+.         replace ch_feces_safe_disp=. if c903_intoilet==. & c903_diaper==. & c903
+> _potty_incourt==. & c903_potty_inhouse==. & (c904==.|c904==99) 
+(4,548 real changes made, 4,548 to missing)
+
+.         *EXCLUDE ALL HOUSEHOLDS ENROLLED IN THE PARASITE SUBSAMPLE since they we
+> re given nappies for stool collection
+.         *merge in Household tracking document for this. 
+.         merge 1:1 hhid using "Untouched/msP_household_tracking_20161006.dta"
+(note: variable hhid was long, now double to accommodate using data's values)
+(label yes_no already defined)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                             0
+    matched                             8,246  (_merge==3)
+    -----------------------------------------
+
+.         assert _merge==3 |_merge==2
+
+.         keep if _merge==3
+(0 observations deleted)
+
+.         drop _merge
+
+.         replace ch_feces_safe_disp=. if parasite_bl==1
+(646 real changes made, 646 to missing)
+
+. tab  ch_feces_safe_disp
+
+ch_feces_sa |
+    fe_disp |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |      2,559       83.85       83.85
+          1 |        493       16.15      100.00
+------------+-----------------------------------
+      Total |      3,052      100.00
+
+. 
+.         
+. * primary handwashing station has water and soap
+. gen byte watsoap_avail=(c702c_water==1 & (c702c_scentbar==1 | c702c_unscentbar==
+> 1 | c702c_powder==1 | c702c_soapywat==1)) | ( c703c_water==1 & (c703c_scentbar==
+> 1 | c703c_unscentbar==1 | c703c_powder==1 | c703c_soapywat==1))
+
+.         replace watsoap_avail=. if (c702c_water==. & (c702c_scentbar==. & c702c_
+> unscentbar==. & c702c_powder==. & c702c_soapywat==.)) & ( c703c_water==. & (c703
+> c_scentbar==. & c703c_unscentbar==. & c703c_powder==. & c703c_soapywat==.))
+(18 real changes made, 18 to missing)
+
+.         *replace watsoap_avail=. if wat_avail==. & soap_avail==.
+.         label var watsoap_avail "Water and soap within 2 m of latrine or kitchen
+> "
+
+. tab watsoap_avail
+
+  Water and |
+soap within |
+     2 m of |
+ latrine or |
+    kitchen |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |      7,750       94.19       94.19
+          1 |        478        5.81      100.00
+------------+-----------------------------------
+      Total |      8,228      100.00
+
+. 
+. tempfile uptakeBL
+
+. save `uptakeBL' 
+file C:\Users\andre\AppData\Local\Temp\ST_08000003.tmp saved
+
+. 
+. 
+. * mean sachels of LNS fed in prior week to index child 6-24 mos (not at baseline
+> )
+. 
+. 
+. 
+. 
+. 
+. 
+. 
+. 
+. 
+. *--------------------------------------------
+. * load the year 1 dataset
+. *--------------------------------------------
+. 
+. use "Untouched/Midline/msP_ml_append_ID_clean_uptake_20161015.dta", clear
+
+. 
+. * format survey dates
+. gen svydate = ms_ml_up_date
+
+.         format svydate %d
+
+.         label var svydate "Survey date"
+
+.         codebook svydate
+
+----------------------------------------------------------------------------------
+svydate                                                                Survey date
+----------------------------------------------------------------------------------
+
+                  type:  numeric daily date (float)
+
+                 range:  [19736,20243]                units:  1
+       or equivalently:  [13jan2014,04jun2015]        units:  days
+         unique values:  155                      missing .:  0/6,084
+
+                  mean:   20109.2 = 21jan2015 (+ 4 hours)
+              std. dev:   114.107
+
+           percentiles:        10%       25%       50%       75%       90%
+                             20011     20045     20123     20198     20227
+                         15oct2014 18nov2014 04feb2015 20apr2015 19may2015
+
+. 
+. * identify survey round
+. gen studyyear = 1
+
+.         label var svy "Survey round (0,1,2)"
+
+.         
+. * restrict to the relevant variables for uptake
+. 
+. *# delimit;
+. *keep hhid studyyear svydate
+. *;
+. *# delimit cr
+. order hhid studyyear svydate
+
+. sort hhid
+
+. 
+. * convert LNS indicators from string to real (for clean append, below)
+. *local vlist "n1404 n1405 n1406 n1407 n1408 n1409"
+. *foreach var of local vlist {
+. *       gen r`var' = real(`var')
+. *       drop `var'
+. *       rename r`var' `var'
+. *}
+. 
+. 
+. *tempfile svy1
+. *save `svy1'
+. 
+. *--------------------------------------------
+. * Merge Treatment Assignment
+. *--------------------------------------------
+. sort clusterid
+
+. *capture drop clusterid block tr
+. merge m:1 clusterid using `trdata'
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                            80
+        from master                         0  (_merge==1)
+        from using                         80  (_merge==2)
+
+    matched                             6,084  (_merge==3)
+    -----------------------------------------
+
+. *assert _merge == 3
+. keep if _merge==3
+(80 observations deleted)
+
+. drop _merge
+
+. 
+. *--------------------------------------------
+. * Uptake indicators
+. *--------------------------------------------
+. 
+. 
+. * visited by promoter in past month
+. gen byte promoter_vis= (f2==1)
+
+.         replace promoter_vis=. if inlist(f2,99,.,88)
+(2,315 real changes made, 2,315 to missing)
+
+.         replace promoter_vis=0 if tr==8
+(0 real changes made)
+
+.         label var promoter_vis "visited by promoter in past month"
+
+. tab promoter_vis
+
+ visited by |
+promoter in |
+ past month |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |        981       26.03       26.03
+          1 |      2,788       73.97      100.00
+------------+-----------------------------------
+      Total |      3,769      100.00
+
+. 
+. 
+. * store water with detectable free chlorine (not at baseline)
+. gen byte freechl = c1015a>0 & c1015a!=99.9 & c1015a!=999 
+
+.         replace freechl = 0 if c1015a==0 | c1005==2 | (c1005==1 & c1006_cldisp!=
+> 1 & c1006_botcl!=1 & c1006_pur!=1 & c1006_aqua!=1 & c1006_cl!=1)
+(2,577 real changes made)
+
+.         replace freechl = . if c1003_1==2 | c1014!=1| c1015a==99.9 | c1015a==999
+(2,885 real changes made, 2,885 to missing)
+
+.         label var freechl "Free chlorine detected in stored water (>0 mg/L)"
+
+. tab freechl
+
+       Free |
+   chlorine |
+detected in |
+     stored |
+  water (>0 |
+      mg/L) |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |      2,640       82.53       82.53
+          1 |        559       17.47      100.00
+------------+-----------------------------------
+      Total |      3,199      100.00
+
+. 
+. 
+. * access to improved latrine
+. gen byte impr_lat = (c806_7==1 | c806_5==1)
+
+.         replace impr_lat = . if (c806_7==. | c806_5==.)
+(2,415 real changes made, 2,415 to missing)
+
+.         replace impr_lat=0 if c8052==4
+(156 real changes made)
+
+.         replace impr_lat=. if (c8052==2 | c8052==3)
+(0 real changes made)
+
+.         replace impr_lat=. if inlist(c8052,99,.,88)
+(0 real changes made)
+
+.         label var impr_lat "Access to improved latrine"
+
+. tab impr_lat
+
+  Access to |
+   improved |
+    latrine |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |      2,139       55.92       55.92
+          1 |      1,686       44.08      100.00
+------------+-----------------------------------
+      Total |      3,825      100.00
+
+. 
+. 
+.         
+. * child feces safetly disposed
+. gen byte ch_feces_safe_disp= c903_intoilet==1 |( c903_diaper==1 & c904==2) | ((c
+> 903_pottyincourt==1 | c903_pottyinhouse==1) & (c904==2 | c904==7))
+
+.         replace ch_feces_safe_disp=. if c903_intoilet==. & c903_diaper==. & c903
+> _pottyincourt==. & c903_pottyinhouse==. & (c904==.|c904==99) 
+(2,253 real changes made, 2,253 to missing)
+
+.         *EXCLUDE ALL HOUSEHOLDS ENROLLED IN THE PARASITE SUBSAMPLE since they we
+> re given nappies for stool collection
+.         *merge in Household tracking document for this. 
+.         merge 1:1 hhid using "Untouched/msP_household_tracking_20161006.dta"
+(note: variable hhid was long, now double to accommodate using data's values)
+(label yes_no already defined)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         2,162
+        from master                         0  (_merge==1)
+        from using                      2,162  (_merge==2)
+
+    matched                             6,084  (_merge==3)
+    -----------------------------------------
+
+.         assert _merge==3 |_merge==2
+
+.         keep if _merge==3
+(2,162 observations deleted)
+
+.         drop _merge
+
+.         replace ch_feces_safe_disp=. if parasite_bl==1
+(375 real changes made, 375 to missing)
+
+. 
+.         tab ch_feces_safe_disp
+
+ch_feces_sa |
+    fe_disp |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |      1,718       49.71       49.71
+          1 |      1,738       50.29      100.00
+------------+-----------------------------------
+      Total |      3,456      100.00
+
+.         
+. 
+.         
+. * primary handwashing station has water and soap
+. gen byte watsoap=(c702c_water==1 & (c702c_scentbar==1 | c702c_unscentbar==1 | c7
+> 02c_powder==1 | c702c_soapywat==1)) | ( c703c_water==1 & (c703c_scentbar==1 | c7
+> 03c_unscentbar==1 | c703c_powder==1 | c703c_soapywat==1)) 
+
+.         replace watsoap=. if (c702c_water==. & (c702c_scentbar==. & c702c_unscen
+> tbar==. & c702c_powder==. & c702c_soapywat==.)) & ( c703c_water==. & (c703c_scen
+> tbar==. & c703c_unscentbar==. & c703c_powder==. & c703c_soapywat==.)) 
+(2,107 real changes made, 2,107 to missing)
+
+. gen byte tippytap=(tt702b1==1 & tt702d==1 & tt702f==1) | (tt703b1==1 & tt703d==1
+>  & tt703f==1)
+
+.         replace tippytap=. if (tt702b1==. & tt702d==. & tt702f==.) & (tt703b1==.
+>  & tt703d==. & tt703f==.)
+(5,802 real changes made, 5,802 to missing)
+
+.         
+.         
+. gen byte watsoap_avail = (watsoap==1 | tippytap==1)
+
+.         replace watsoap_avail =. if watsoap==. & tippytap==.
+(2,107 real changes made, 2,107 to missing)
+
+.         label var watsoap_avail "Water and soap within 2 m of latrine or kitchen
+> "
+
+. 
+. 
+. * mean sachels of LNS fed in prior week to index child 6-24 mos (not at baseline
+> )
+. * using 5.95 months because of 1 child who was 5.98 months due to rounding
+. *gen double agem = agedays/30.4167
+. *       label var agem "Index child, age in months"     
+. 
+. * mean sachets of LNS reported fed in prior week to index child 6-24 mos
+.         * merge in ages of children
+.         merge 1:1 hhid using `DOB'
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         2,559
+        from master                       673  (_merge==1)
+        from using                      1,886  (_merge==2)
+
+    matched                             5,411  (_merge==3)
+    -----------------------------------------
+
+.         *assert _merge==3
+.         tab _merge
+
+                 _merge |      Freq.     Percent        Cum.
+------------------------+-----------------------------------
+        master only (1) |        673        8.44        8.44
+         using only (2) |      1,886       23.66       32.11
+            matched (3) |      5,411       67.89      100.00
+------------------------+-----------------------------------
+                  Total |      7,970      100.00
+
+.         keep if _merge==3|_merge==1
+(1,886 observations deleted)
+
+.         drop _merge
+
+.         
+.         gen aged = svydate-DOB
+(687 missing values generated)
+
+.         label var aged "Age in days (uptake meas)"
+
+.         
+.         gen double agem = aged/30.4167
+(687 missing values generated)
+
+.         label var agem "Age in months (anthro meas)"
+
+.         
+.         * Sachets consumed per week
+.         gen lnsn = (c1408*c1409)
+(5,270 missing values generated)
+
+.         replace lnsn = . if (agem < 6) | (agem>24)
+(0 real changes made)
+
+.         label var lnsn "LNS sachets consumed per week"
+
+.  
+.         * percent of expected
+.         gen lnsp = (lnsn/14)
+(5,270 missing values generated)
+
+.         label var lnsp "Percent of expected LNS sachets consumed (reported)"
+
+.         
+.         list c1408 c1409 lnsn if c1409>2 & c1409<.
+
+      +----------------------+
+      | c1408   c1409   lnsn |
+      |----------------------|
+ 160. |     7       4     28 |
+ 650. |     7       3     21 |
+1620. |     4       3     12 |
+1915. |     7       7     49 |
+2506. |     7       7     49 |
+      |----------------------|
+3002. |     7       3     21 |
+3238. |     7       3     21 |
+3827. |     7       3     21 |
+3979. |     7       5     35 |
+4351. |     7       3     21 |
+      |----------------------|
+4459. |     7       7     49 |
+5124. |     7       3     21 |
+5711. |     7       3     21 |
+5883. |     7       3     21 |
+      +----------------------+
+
+. 
+. 
+. 
+. 
+. label var hhid "Household ID"
+
+. 
+. * restrict to household level variables used in the analysis
+. * and save the data
+. keep hhid clusterid block tr studyyear svydate promoter_vis freechl impr_lat ch_
+> feces_safe_disp watsoap_avail lnsn lnsp
+
+. *order dataid clusterid block tr studyyear svydate storewat freechl latseal latf
+> eces humfeces hwsw hwss hwsws *lns*
+. 
+. 
+. *save a temporary midline file
+.         tempfile uptakeML
+
+.         save `uptakeML'
+file C:\Users\andre\AppData\Local\Temp\ST_08000004.tmp saved
+
+. 
+. 
+. 
+. 
+. *--------------------------------------------
+. * load the year 2 main survey dataset
+. *--------------------------------------------
+. 
+. use "Untouched/Endline/msP_el_append_ID_clean_uptake_20161015.dta", clear
+
+. 
+. * format survey dates
+. rename ms_el_up_date svydate 
+
+.         format svydate %d
+
+.         label var svydate "Survey date"
+
+.         codebook svydate
+
+----------------------------------------------------------------------------------
+svydate                                                                Survey date
+----------------------------------------------------------------------------------
+
+                  type:  numeric daily date (float)
+
+                 range:  [20130,20697]                units:  1
+       or equivalently:  [11feb2015,31aug2016]        units:  days
+         unique values:  281                      missing .:  0/7,138
+
+                  mean:   20475.6 = 22jan2016 (+ 14 hours)
+              std. dev:   130.887
+
+           percentiles:        10%       25%       50%       75%       90%
+                             20334     20390     20492     20580     20628
+                         03sep2015 29oct2015 08feb2016 06may2016 23jun2016
+
+. 
+.         
+. * identify survey round
+. gen studyyear = 2
+
+.         label var studyyear "Survey round (0,1,2)"
+
+.         
+. * variable q4205 changed to q4206 in year 2
+. *rename q4206 q4205
+. 
+. /*      
+> * restrict to the relevant variables for uptake
+> # delimit;
+> keep hhid studyyear svydate
+> ;
+> # delimit cr
+> 
+> * for handwashing station indicators, missing values should be 0
+> for any q704_1 q704_2 q704_3 q704_4 q704_5 q704_6: replace X = 0 if X==.
+> */
+. order hhid svy svydate
+
+. sort hhid
+
+. 
+. 
+. 
+. 
+. *--------------------------------------------
+. * Merge Treatment Assignment
+. *--------------------------------------------
+. sort clusterid
+
+. *capture drop clusterid block tr
+. merge m:1 clusterid using `trdata'
+(note: variable clusterid was float, now double to accommodate using data's
+       values)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                            35
+        from master                         0  (_merge==1)
+        from using                         35  (_merge==2)
+
+    matched                             7,138  (_merge==3)
+    -----------------------------------------
+
+. *assert _merge == 3
+. keep if _merge==3
+(35 observations deleted)
+
+. drop _merge
+
+. 
+. *--------------------------------------------
+. * Uptake indicators
+. *--------------------------------------------
+. 
+. 
+. 
+. * visited by promoter in past month
+. gen byte promoter_vis= (f2==1)
+
+.         replace promoter_vis=. if inlist(f2,99,.,88)
+(1,627 real changes made, 1,627 to missing)
+
+.         replace promoter_vis=0 if tr==8
+(11 real changes made)
+
+.         label var promoter_vis "visited by promoter in past month"
+
+.         tab promoter_vis
+
+ visited by |
+promoter in |
+ past month |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |      3,518       63.71       63.71
+          1 |      2,004       36.29      100.00
+------------+-----------------------------------
+      Total |      5,522      100.00
+
+.         
+.         
+. * store water with detectable free chlorine (not at baseline)
+. gen byte freechl = c1015a>0 & c1015a!=99.9 & c1015a!=999 
+
+.         replace freechl = 0 if c1015a==0 | c1005==2 | (c1005==1 & c1006_cldisp!=
+> 1 & c1006_botcl!=1 & c1006_pur!=1 & c1006_aqua!=1 & c1006_cl!=1)
+(4,349 real changes made)
+
+.         replace freechl = . if c1003_1==2 | c1014!=1| c1015a==99.9 | c1015a==999
+(1,926 real changes made, 1,926 to missing)
+
+.         label var freechl "Free chlorine detected in stored water (>0 mg/L)"
+
+. tab freechl
+
+       Free |
+   chlorine |
+detected in |
+     stored |
+  water (>0 |
+      mg/L) |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |      4,738       90.91       90.91
+          1 |        474        9.09      100.00
+------------+-----------------------------------
+      Total |      5,212      100.00
+
+. 
+.         
+. * access to improved latrine
+. gen byte impr_lat = (c806_7==1 | c806_5==1)
+
+.         replace impr_lat = . if (c806_7==. | c806_5==.)
+(1,825 real changes made, 1,825 to missing)
+
+.         replace impr_lat=0 if c8052==4
+(87 real changes made)
+
+.         replace impr_lat=. if (c8052==2 | c8052==3)
+(0 real changes made)
+
+.         replace impr_lat=. if inlist(c8052,99,.,88)
+(0 real changes made)
+
+. 
+.         label var impr_lat "Access to improved latrine"
+
+.         
+.         tab impr_lat
+
+  Access to |
+   improved |
+    latrine |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |      3,140       58.15       58.15
+          1 |      2,260       41.85      100.00
+------------+-----------------------------------
+      Total |      5,400      100.00
+
+. 
+. * child feces safetly disposed
+. gen byte ch_feces_safe_disp= c903==7 | (c903==8 & c904==2) | ((c903 ==1 | c903 =
+> =2) & (c904==2 | c904==7))
+
+.         replace ch_feces_safe_disp=. if inlist(c903,99,.,88) & inlist(c904,99,.,
+> 88) 
+(1,524 real changes made, 1,524 to missing)
+
+.         *EXCLUDE ALL HOUSEHOLDS ENROLLED IN THE PARASITE SUBSAMPLE since they we
+> re given nappies for stool collection
+.         *merge in Household tracking document for this. 
+.         merge 1:1 hhid using "Untouched/msP_household_tracking_20161006.dta"
+(note: variable hhid was long, now double to accommodate using data's values)
+(label yes_no already defined)
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,108
+        from master                         0  (_merge==1)
+        from using                      1,108  (_merge==2)
+
+    matched                             7,138  (_merge==3)
+    -----------------------------------------
+
+.         assert _merge==3 |_merge==2
+
+.         keep if _merge==3
+(1,108 observations deleted)
+
+.         drop _merge
+
+.         replace ch_feces_safe_disp=. if parasite_bl==1
+(523 real changes made, 523 to missing)
+
+. 
+.         tab ch_feces_safe_disp
+
+ch_feces_sa |
+    fe_disp |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 |      4,111       80.75       80.75
+          1 |        980       19.25      100.00
+------------+-----------------------------------
+      Total |      5,091      100.00
+
+.         
+. * primary handwashing station has water and soap
+. gen byte watsoap=(c702c_water==1 & (c702c_scentbar==1 | c702c_unscentbar==1 | c7
+> 02c_powder==1 | c702c_soapywat==1)) | ( c703c_water==1 & (c703c_scentbar==1 | c7
+> 03c_unscentbar==1 | c703c_powder==1 | c703c_soapywat==1)) 
+
+. tab tr watsoap 
+
+     Randomized |
+      treatment |        watsoap
+     assignment |         0          1 |     Total
+----------------+----------------------+----------
+        Control |     1,742        127 |     1,869 
+          Water |       830         49 |       879 
+     Sanitation |       809         57 |       866 
+    Handwashing |       735        144 |       879 
+            WSH |       749        123 |       872 
+      Nutrition |       740         76 |       816 
+Nutrition + WSH |       753        138 |       891 
+Passive Control |        63          3 |        66 
+----------------+----------------------+----------
+          Total |     6,421        717 |     7,138 
+
+
+.         replace watsoap=. if (c702c_water==. & (c702c_scentbar==. & c702c_unscen
+> tbar==. & c702c_powder==. & c702c_soapywat==.)) & ( c703c_water==. & (c703c_scen
+> tbar==. & c703c_unscentbar==. & c703c_powder==. & c703c_soapywat==.)) 
+(1,463 real changes made, 1,463 to missing)
+
+. tab tr watsoap 
+
+     Randomized |
+      treatment |        watsoap
+     assignment |         0          1 |     Total
+----------------+----------------------+----------
+        Control |     1,331        127 |     1,458 
+          Water |       647         49 |       696 
+     Sanitation |       655         57 |       712 
+    Handwashing |       546        144 |       690 
+            WSH |       552        123 |       675 
+      Nutrition |       574         76 |       650 
+Nutrition + WSH |       597        138 |       735 
+Passive Control |        56          3 |        59 
+----------------+----------------------+----------
+          Total |     4,958        717 |     5,675 
+
+
+. 
+.         gen byte tippytap=(tt702b1==1 & tt702d==1 & tt702f==1) | (tt703b1==1 & t
+> t703d==1 & tt703f==1)
+
+. tab tr tippytap 
+
+     Randomized |
+      treatment |       tippytap
+     assignment |         0          1 |     Total
+----------------+----------------------+----------
+        Control |     1,869          0 |     1,869 
+          Water |       879          0 |       879 
+     Sanitation |       866          0 |       866 
+    Handwashing |       849         30 |       879 
+            WSH |       860         12 |       872 
+      Nutrition |       816          0 |       816 
+Nutrition + WSH |       869         22 |       891 
+Passive Control |        66          0 |        66 
+----------------+----------------------+----------
+          Total |     7,074         64 |     7,138 
+
+
+. 
+.         replace tippytap=. if tt702b1==. & tt702d==. & tt702f==. & tt703b1==. & 
+> tt703d==. & tt703f==.
+(5,895 real changes made, 5,895 to missing)
+
+. tab tr tippytap 
+
+     Randomized |
+      treatment |       tippytap
+     assignment |         0          1 |     Total
+----------------+----------------------+----------
+    Handwashing |       377         30 |       407 
+            WSH |       389         12 |       401 
+Nutrition + WSH |       413         22 |       435 
+----------------+----------------------+----------
+          Total |     1,179         64 |     1,243 
+
+
+. tab tr 
+
+     Randomized |
+      treatment |
+     assignment |      Freq.     Percent        Cum.
+----------------+-----------------------------------
+        Control |      1,869       26.18       26.18
+          Water |        879       12.31       38.50
+     Sanitation |        866       12.13       50.63
+    Handwashing |        879       12.31       62.94
+            WSH |        872       12.22       75.16
+      Nutrition |        816       11.43       86.59
+Nutrition + WSH |        891       12.48       99.08
+Passive Control |         66        0.92      100.00
+----------------+-----------------------------------
+          Total |      7,138      100.00
+
+. 
+.         
+. gen byte watsoap_avail = (watsoap==1 | tippytap==1)
+
+.         replace watsoap_avail =. if watsoap==. & tippytap==.
+(1,463 real changes made, 1,463 to missing)
+
+.         label var watsoap_avail "Water and soap within 2 m of latrine or kitchen
+> "
+
+. tab tr watsoap 
+
+     Randomized |
+      treatment |        watsoap
+     assignment |         0          1 |     Total
+----------------+----------------------+----------
+        Control |     1,331        127 |     1,458 
+          Water |       647         49 |       696 
+     Sanitation |       655         57 |       712 
+    Handwashing |       546        144 |       690 
+            WSH |       552        123 |       675 
+      Nutrition |       574         76 |       650 
+Nutrition + WSH |       597        138 |       735 
+Passive Control |        56          3 |        59 
+----------------+----------------------+----------
+          Total |     4,958        717 |     5,675 
+
+
+. tab tr tippytap 
+
+     Randomized |
+      treatment |       tippytap
+     assignment |         0          1 |     Total
+----------------+----------------------+----------
+    Handwashing |       377         30 |       407 
+            WSH |       389         12 |       401 
+Nutrition + WSH |       413         22 |       435 
+----------------+----------------------+----------
+          Total |     1,179         64 |     1,243 
+
+
+. tab tr watsoap_avail 
+
+                | Water and soap within
+     Randomized |   2 m of latrine or
+      treatment |        kitchen
+     assignment |         0          1 |     Total
+----------------+----------------------+----------
+        Control |     1,331        127 |     1,458 
+          Water |       647         49 |       696 
+     Sanitation |       655         57 |       712 
+    Handwashing |       531        159 |       690 
+            WSH |       545        130 |       675 
+      Nutrition |       574         76 |       650 
+Nutrition + WSH |       583        152 |       735 
+Passive Control |        56          3 |        59 
+----------------+----------------------+----------
+          Total |     4,922        753 |     5,675 
+
+
+. 
+.         
+. 
+. * mean sachels of LNS fed in prior week to index child 6-24 mos (not at baseline
+> )
+. * using 5.95 months because of 1 child who was 5.98 months due to rounding
+. *gen double agem = agedays/30.4167
+. *       label var agem "Index child, age in months"
+. * mean sachets of LNS reported fed in prior week to index child 6-24 mos
+.         * merge in ages of children
+.         merge 1:1 hhid using `DOB'
+
+    Result                           # of obs.
+    -----------------------------------------
+    not matched                         1,447
+        from master                       644  (_merge==1)
+        from using                        803  (_merge==2)
+
+    matched                             6,494  (_merge==3)
+    -----------------------------------------
+
+.         *assert _merge==3
+.         keep if _merge==3|_merge==1
+(803 observations deleted)
+
+.         drop _merge
+
+.         
+.         gen aged = svydate-DOB
+(657 missing values generated)
+
+.         label var aged "Age in days (uptake meas)"
+
+.         
+.         gen double agem = aged/30.4167
+(657 missing values generated)
+
+.         label var agem "Age in months (anthro meas)"
+
+.         
+.         * Sachets consumed per week
+.         gen lnsn = (c1408*c1409)
+(6,539 missing values generated)
+
+.         replace lnsn = . if (agem < 6) | (agem>24)
+(128 real changes made, 128 to missing)
+
+.         label var lnsn "LNS sachets consumed per week"
+
+.  
+.         * percent of expected
+.         gen lnsp = (lnsn/14)
+(6,667 missing values generated)
+
+.         label var lnsp "Percent of expected LNS sachets consumed (reported)"
+
+.         
+.         list c1408 c1409 lnsn if c1409>2 & c1409<.
+
+      +----------------------+
+      | c1408   c1409   lnsn |
+      |----------------------|
+  15. |     5       5     25 |
+  82. |     7       7     49 |
+ 101. |     7       3     21 |
+ 192. |     7       4     28 |
+ 286. |     7       3      . |
+      |----------------------|
+ 447. |     7       7     49 |
+ 683. |     4       3     12 |
+ 684. |     7       7     49 |
+1063. |     3       7      . |
+1071. |     7       7     49 |
+      |----------------------|
+1152. |     7       7     49 |
+1156. |     7       7     49 |
+1225. |     7       4     28 |
+1314. |     7       3     21 |
+1315. |     7       7     49 |
+      |----------------------|
+1584. |     4       8      . |
+1590. |     5       5     25 |
+1592. |     7       7     49 |
+1648. |     7       7     49 |
+1745. |     7       7      . |
+      |----------------------|
+2146. |     7       7     49 |
+2295. |     7       7      . |
+2310. |     7       7     49 |
+2476. |     7       7     49 |
+2478. |     7       7     49 |
+      |----------------------|
+2508. |     7       7     49 |
+2516. |     7       4     28 |
+2581. |     7       7     49 |
+2608. |     7       7     49 |
+2610. |     7       7     49 |
+      |----------------------|
+2614. |     7       4     28 |
+2722. |     7       7     49 |
+2777. |     7       7     49 |
+2847. |     5       5     25 |
+2888. |     7       7     49 |
+      |----------------------|
+2960. |     7       7     49 |
+3006. |     7       7     49 |
+3046. |     7       7     49 |
+3086. |     7       7     49 |
+3156. |     7       7     49 |
+      |----------------------|
+3286. |     7       7     49 |
+3310. |     7       4     28 |
+3549. |     7       7     49 |
+3759. |     4       4      . |
+3764. |     1       3      3 |
+      |----------------------|
+3809. |     7       4     28 |
+3858. |     7       3      . |
+3941. |     7       3     21 |
+3942. |     7       4      . |
+4038. |     7       4     28 |
+      |----------------------|
+4155. |     4       3     12 |
+4158. |     7       4      . |
+4364. |     7       3      . |
+4836. |     7       4      . |
+4931. |     3       5      . |
+      |----------------------|
+5035. |     7       5     35 |
+5409. |     7       3     21 |
+5476. |     7       3      . |
+5586. |     7       3     21 |
+5685. |     7       7     49 |
+      |----------------------|
+5702. |     7       7     49 |
+5710. |     7       7     49 |
+5902. |     7       9     63 |
+5927. |     7       9     63 |
+6147. |     4       8     32 |
+      |----------------------|
+6402. |     7       7     49 |
+6427. |     4       5     20 |
+6430. |     2       4      8 |
+6575. |     7       7     49 |
+6685. |     7       7     49 |
+      |----------------------|
+6687. |     7       7     49 |
+6732. |     6       3     18 |
+6978. |     7       9     63 |
+7026. |     7       4     28 |
+7055. |     7       3     21 |
+      |----------------------|
+7098. |     7       3     21 |
+      +----------------------+
+
+.         mean lnsp
+
+Mean estimation                   Number of obs   =        471
+
+--------------------------------------------------------------
+             |       Mean   Std. Err.     [95% Conf. Interval]
+-------------+------------------------------------------------
+        lnsp |   1.153321   .0356472      1.083274    1.223369
+--------------------------------------------------------------
+
+.         
+.         *Keep relavent variables for append 
+.         keep hhid clusterid block tr studyyear svydate promoter_vis freechl impr
+> _lat ch_feces_safe_disp watsoap_avail lnsn lnsp
+
+. 
+.         *drop accidentally visited passive control compounds (uptake erroniously
+>  administered during attrition followup)
+.         drop if tr==8
+(66 observations deleted)
+
+.         tab tr
+
+     Randomized |
+      treatment |
+     assignment |      Freq.     Percent        Cum.
+----------------+-----------------------------------
+        Control |      1,869       26.43       26.43
+          Water |        879       12.43       38.86
+     Sanitation |        866       12.25       51.10
+    Handwashing |        879       12.43       63.53
+            WSH |        872       12.33       75.86
+      Nutrition |        816       11.54       87.40
+Nutrition + WSH |        891       12.60      100.00
+----------------+-----------------------------------
+          Total |      7,072      100.00
+
+.         
+.         *save a temporary midline file
+.         tempfile uptakeEL
+
+.         save `uptakeEL'
+file C:\Users\andre\AppData\Local\Temp\ST_08000005.tmp saved
+
+. 
+. 
+. *--------------------------------------------
+. * Save an uptake analysis dataset
+. * compound-survey level observations
+. *--------------------------------------------   
+. 
+. *--------------------------------------------
+. * Load in baseline uptake
+. *--------------------------------------------
+. *use "Final/Andrew/washb-kenya-enrol.dta"
+. use `uptakeBL'
+
+. keep hhid clusterid block tr promoter_vis freechl impr_lat ch_feces_safe_disp wa
+> tsoap_avail 
+
+. 
+. *Generate uptake variables missing from baseline
+. generate studyyear=0
+
+. generate lnsn=.
+(8,246 missing values generated)
+
+. generate lnsp=.
+(8,246 missing values generated)
+
+. 
+. 
+. append using `uptakeML'
+(label tr already defined)
+
+. append using `uptakeEL'
+(label tr already defined)
+
+. 
+.         
+. 
+.         
+.         
+. compress
+  variable tr was float now byte
+  variable studyyear was float now byte
+  variable svydate was float now int
+  variable hhid was double now long
+  variable clusterid was double now long
+  (342,432 bytes saved)
+
+. sort hhid studyyear
+
+. label data "Kenya uptake analysis dataset (compound-svy obs), created by 6-kenya
+> -dm-uptake.do"
+note: label truncated to 80 characters
+
+. saveold "~/dropbox/WBK-primary-analysis/data/Final/Andrew/washb-kenya-uptake.dta
+> ", replace version(12)
+(saving in Stata 12 format, which can be read by Stata 11 or 12)
+file ~/dropbox/WBK-primary-analysis/data/Final/Andrew/washb-kenya-uptake.dta saved
+
+. outsheet using "~/dropbox/WBk-primary-analysis/data/Final/Andrew/washb-kenya-upt
+> ake.csv", comma replace
+
+. 
+. x
+command x is unrecognized
+r(199);
+
+end of do-file
+
+r(199);
+
+. exit, clear
